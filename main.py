@@ -24,7 +24,7 @@ def main():
     encoded_messages = load_encoded_messages()
 
     while True:
-        action = input("Encode, decode, custom encode, custom decode, or exit? If you chooose encode or decode strong randomly-generated AES keys (but not easy to remember) will be used. (e/d/ce/cd/exit): ")
+        action = input("Encode, decode, custom encode, custom decode, or exit? If you choose encode or decode strong randomly-generated AES keys (but not easy to remember) will be used. (e/d/ce/cd/exit): ")
 
         if action == 'e':
             input_text = input("Enter text to encode: ")
@@ -32,6 +32,10 @@ def main():
                 _, encoded_text = encode(input_text, aes_key)
                 save_encoded_message(encoded_text)
                 print("Encoded:", encoded_text)
+                print("__________________________________________________________")
+                print("Your AES_KEY was", aes_key)
+                print("Save the key for future reference or then you won't be able to decode the message. (you can use cd in the future.)")
+                print("__________________________________________________________")
             except Exception as e:
                 print("Error occurred during encoding:", e)
 
