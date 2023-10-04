@@ -1,78 +1,49 @@
 import os
-from my_cryptography import generate_aes_key, encode, decode
+import base64
+from Cryptodome.Cipher import AES
+from Cryptodome.Random import get_random_bytes
 
-ENCODED_MESSAGES_FILE = "encoded_messages.txt"
+def generate_aes_key():
+    return get_random_bytes(32)  # 256-bit AES key
 
-def save_encoded_message(encoded_message):
-    with open(ENCODED_MESSAGES_FILE, "a") as f:
-        f.write(f"{encoded_message}\n")
+def encrypt(message, key):
+    cipher = AES.new(key, AES.MODE_GCM)
+    nonce = cipher.nonce
+    ciphertext, tag = cipher.encrypt_and_digest(message.encode('utf-8'))
+    return nonce + ciphertext + tag
 
-def load_encoded_messages():
-    encoded_messages = []
-    try:
-        with open(ENCODED_MESSAGES_FILE, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    encoded_messages.append(line)
-    except FileNotFoundError:
-        pass
-    return encoded_messages
+def decrypt(ciphertext, key):
+    nonce = ciphertext[:16]
+    tag = ciphertext[-16:]
+    ciphertext = ciphertext[16:-16]
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    plaintext = cipher.decrypt_and_verify(ciphertext, tag)
+    return plaintext.decode('utf-8')
 
 def main():
-    aes_key = generate_aes_key()  # Generate a new AES key each time the program runs
-    encoded_messages = load_encoded_messages()
+    print("Choose an option:")
+    print("1. Encode")
+    print("2. Decode")
+    choice = input("Enter your choice: ")
 
-    while True:
-        action = input("Encode, decode, custom encode, custom decode, or exit? If you choose encode or decode strong randomly-generated AES keys (but not easy to remember) will be used. (e/d/ce/cd/exit): ")
+    if choice == '1':
+        message = input("Enter the message to encode: ")
+        aes_key = generate_aes_key()
+        encoded_message = encrypt(message, aes_key)
+        encoded_message = base64.b64encode(encoded_message).decode('utf-8')
+        print(f"Encoded message: {encoded_message}")
+        print(f"AES Key: {base64.b64encode(aes_key).decode('utf-8')}")
 
-        if action == 'e':
-            input_text = input("Enter text to encode: ")
-            try:
-                _, encoded_text = encode(input_text, aes_key)
-                save_encoded_message(encoded_text)
-                print("Encoded:", encoded_text)
-                print("__________________________________________________________")
-                print("Your AES_KEY was", aes_key)
-                print("Save the key for future reference or then you won't be able to decode the message. (you can use cd in the future.)")
-                print("__________________________________________________________")
-            except Exception as e:
-                print("Error occurred during encoding:", e)
+    elif choice == '2':
+        encoded_message = input("Enter the encoded message: ")
+        aes_key = input("Enter the AES key (base64 encoded) used for encoding: ")
+        aes_key = base64.b64decode(aes_key)
+        encoded_message = base64.b64decode(encoded_message)
+        decoded_message = decrypt(encoded_message, aes_key)
+        print(f"Decoded message: {decoded_message}")
 
-        elif action == 'd':
-            encoded_text = input("Enter the encoded message you want to decode: ")
-            try:
-                decoded_text = decode(encoded_text, aes_key)
-                print("Decoded:", decoded_text)
-            except Exception as e:
-                print("Error occurred during decoding:", e)
-
-        elif action == 'ce':
-            custom_aes_key = input("Enter the AES key for custom encoding: ")
-            input_text = input("Enter text to custom encode: ")
-            try:
-                _, encoded_text = encode(input_text, custom_aes_key)
-                print("Custom Encoded:", encoded_text)
-            except Exception as e:
-                print("Error occurred during custom encoding:", e)
-
-        elif action == 'cd':
-            custom_aes_key = input("Enter the AES key for custom decoding: ")
-            custom_encoded_text = input("Enter the encoded message for custom decoding: ")
-            try:
-                decoded_text = decode(custom_encoded_text, custom_aes_key)
-                print("Custom Decoded:", decoded_text)
-            except Exception as e:
-                print("Error occurred during custom decoding:", e)
-
-        
-
-        elif action == 'exit':
-            print("Exiting...")
-            break
-
-        else:
-            print("Invalid option. Please enter 'e', 'd', 'ce', 'cd', or 'exit'.")
+    else:
+        print("Invalid choice.")
 
 if __name__ == "__main__":
     main()
